@@ -1,18 +1,16 @@
 module System.Android.SparseImage.Types (
-    LE64 (..)
-  , LE32 (..)
-  , LE16 (..)
+    LE64
+  , LE32
+  , LE16
   , sparseHeaderMagicNum
   , SparseHeader (..)
   , ChunkHeader (..) ) where
 
 import Data.Word
 
-import System.Endian
-
-newtype LE64 = LE64 { __le64 :: Word64 } deriving (Show, Read, Eq, Ord)
-newtype LE32 = LE32 { __le32 :: Word32 } deriving (Show, Read, Eq, Ord)
-newtype LE16 = LE16 { __le16 :: Word16 } deriving (Show, Read, Eq, Ord)
+type LE64 = Word64
+type LE32 = Word32
+type LE16 = Word16
 
 data SparseHeader = SparseHeader {
     shMagicNum        :: LE32
@@ -27,7 +25,7 @@ data SparseHeader = SparseHeader {
   } deriving (Show, Eq)
 
 sparseHeaderMagicNum :: LE32
-sparseHeaderMagicNum = LE32 (toLE32 0xed26ff3a)
+sparseHeaderMagicNum = 0xed26ff3a
 
 data ChunkHeader = ChunkHeader {
     chChunkType :: LE16
