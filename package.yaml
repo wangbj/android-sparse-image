@@ -1,0 +1,71 @@
+name:                android-sparse-image
+version:             0.1.0.0
+github:              "wangbj/android-sparse-image"
+license:             BSD3
+author:              "Baojun Wang"
+maintainer:          "wangbj@gmail.com"
+copyright:           "2018 Baojun Wang"
+category:            Data
+
+extra-source-files:
+- README.md
+- ChangeLog.md
+
+# Metadata used when publishing your package
+# synopsis:            Short description of your package
+# category:            Web
+
+# To avoid duplicated efforts in documentation and dealing with the
+# complications of embedding Haddock markup inside cabal files, it is
+# common to point users to the README.md file.
+description:         Please see the README on Github at <https://github.com/wangbj/android-sparse-image#readme>
+
+dependencies:
+- base >= 4.7 && < 5
+- bytestring >= 0.10
+- mtl >= 2.2
+- cereal >= 0.5
+- containers >= 0.5
+- QuickCheck >= 2.10
+- hspec >= 2.4
+- text >= 1.2
+- memory >= 0.14
+- cpu >= 0.1.2
+- errors >= 2.2
+- optparse-applicative >= 0.14
+- filepath >= 1.4
+
+library:
+  source-dirs: src
+
+executables:
+  simg2img:
+    main:                simg2img.hs
+    source-dirs:         app
+    ghc-options:
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
+    dependencies:
+    - android-sparse-image
+
+  img2simg:
+    main:                img2simg.hs
+    source-dirs:         app
+    ghc-options:
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
+    dependencies:
+    - android-sparse-image
+
+tests:
+  sparse-test:
+    main:                Spec.hs
+    source-dirs:         test
+    ghc-options:
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
+    dependencies:
+    - android-sparse-image
