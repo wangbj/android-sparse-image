@@ -39,6 +39,7 @@ dependencies:
 - criterion >= 1.3
 - binary >= 0.8
 - vector >= 0.12
+- optparse-applicative >= 0.14
 
 library:
   source-dirs: src
@@ -52,7 +53,7 @@ executables:
     - -threaded
     - -rtsopts
     - -with-rtsopts=-N
-    - -Wall -fno-warn-orphans -fno-warn-missing-signatures -fno-warn-unused-imports
+    - -Wall -fno-warn-orphans -fno-warn-missing-signatures -fno-warn-unused-imports -fno-warn-unused-top-binds
     dependencies:
     - android-sparse-image
 
@@ -63,7 +64,7 @@ executables:
     - -threaded
     - -rtsopts
     - -with-rtsopts=-N
-    - -Wall -fno-warn-orphans -fno-warn-missing-signatures -fno-warn-unused-imports
+    - -Wall -fno-warn-orphans -fno-warn-missing-signatures -fno-warn-unused-imports -fno-warn-unused-top-binds
     dependencies:
     - android-sparse-image
 

@@ -1,4 +1,6 @@
-module System.Android.SparseImage.Instances where
+module System.Android.SparseImage.Instances (
+    sparseHeaderMagic
+  ) where
 
 #include "sparse_format.h"
 
