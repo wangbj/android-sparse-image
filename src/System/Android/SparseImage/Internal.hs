@@ -1,8 +1,7 @@
 {-# LANGUAGE LambdaCase #-}
 
 module System.Android.SparseImage.Internal (
-    Sparsed (..)
-  , getSparse
+    sparseGetter
   , toSparse
   ) where
 
@@ -64,20 +63,13 @@ getChunks blockSize crc = do
       Left err ->          return (Left err)
       Right (crc', lbs) -> liftM (consRB (crc', lbs)) (getChunks blockSize crc')
 
-getSparseChunksWithCrc crc = do
+sparseGetterWithCrc crc = do
   sparseHeader <- get :: Get SparseHeader
   getChunks (fromIntegral (shBlockSize sparseHeader)) crc >>= \case
     Left err -> return (Left err)
     Right (crc', b) -> return (Right (crc', toLazyByteString b))
 
-newtype Sparsed   = Sparsed   { getSparsed   :: LBS.ByteString }
-
-instance Show Sparsed where
-  show (Sparsed sparsed) = "Spased data: length=" ++ show (LBS.length sparsed)
-
-getSparse = getSparseChunksWithCrc Nothing >>= \case
-  Left  err -> fail (show err)
-  Right got -> (return . snd) got
+sparseGetter = sparseGetterWithCrc Nothing >>= return . fmap snd
 
 data BlockData = BlockDataRaw Builder Int64
                | BlockDataFill Word32 Int64
@@ -120,7 +112,7 @@ mkChunkHeader :: Int -> BlockData -> ChunkHeader
 mkChunkHeader blockSize (BlockDataRaw _ n) = ChunkHeader ChunkRaw 0 ( (toLE32 . fromIntegral) blocks) ( (toLE32 . fromIntegral) total)
   where
     blocks = (n + fromIntegral blockSize - 1) `div` fromIntegral blockSize
-    total  = fromIntegral blockSize * blocks + fromIntegral chunkHeaderSize
+    total  = n + fromIntegral chunkHeaderSize
 mkChunkHeader blockSize (BlockDataFill _ n) = ChunkHeader ChunkFill 0 ( (toLE32 . fromIntegral) blocks) ( (toLE32 . fromIntegral) total)
   where
     blocks = (n + fromIntegral blockSize - 1) `div` fromIntegral blockSize

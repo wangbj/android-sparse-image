@@ -1,7 +1,7 @@
 module System.Android.SparseImage (
-    Sparsed (..)
-  , encode
+    encode
   , decode
+  , eitherDecode
   ) where
 
 import qualified Data.Binary.Get as Binary.Get
@@ -11,8 +11,13 @@ import System.Android.SparseImage.Types
 import System.Android.SparseImage.Instances
 import System.Android.SparseImage.Internal
 
-encode :: ByteString -> Sparsed
-encode = Sparsed . toSparse
+encode :: ByteString -> ByteString
+encode = toSparse
 
-decode :: Sparsed -> ByteString
-decode = Binary.Get.runGet getSparse . getSparsed
+runGet = Binary.Get.runGet
+
+eitherDecode :: ByteString -> Either SparseImageError ByteString
+eitherDecode = runGet sparseGetter
+
+decode = either (error . show) id . eitherDecode
+

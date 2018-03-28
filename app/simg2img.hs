@@ -26,7 +26,7 @@ commandOpts = info (commandLineParser <**> helper)
               <> header "simg2img")
 
 unsparseImage (CommandLine infile outfile) = LBS.readFile infile >>= \sparsed ->
-  LBS.writeFile outfile (decode (Sparsed sparsed))
+  LBS.writeFile outfile (decode sparsed)
 
 main :: IO ()
 main = unsparseImage =<< execParser commandOpts
