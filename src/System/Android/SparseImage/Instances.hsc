@@ -5,9 +5,33 @@ module System.Android.SparseImage.Instances where
 import System.Android.SparseImage.Types
 
 import Foreign.Storable
+import Foreign.Ptr
 import Data.Binary
+import Data.Binary.Get
+import Data.Binary.Put
 
 import System.Endian
+
+sparseHeaderMagic :: LE32
+sparseHeaderMagic = fromIntegral (#const SPARSE_HEADER_MAGIC)
+
+chunkTypeRaw, chunkTypeFill, chunkTypeDontCare, chunkTypeCrc32 :: LE16
+chunkTypeRaw      = fromIntegral (#const CHUNK_TYPE_RAW)
+chunkTypeFill     = fromIntegral (#const CHUNK_TYPE_FILL)
+chunkTypeDontCare = fromIntegral (#const CHUNK_TYPE_DONT_CARE)
+chunkTypeCrc32    = fromIntegral (#const CHUNK_TYPE_CRC32)
+
+getIf :: (a -> Bool) -> String -> Get a -> Get a
+getIf p msg getter = getter >>= \x -> if p x then return x else fail msg
+
+putIf :: (a -> Bool) -> String -> a -> (a -> Put) -> Put
+putIf p msg a putter = if p a then putter a else fail msg
+
+expect :: (Eq a, Show a) => a -> Get a -> Get a
+expect a getter = getIf (==a) ("expect: " ++ show a) getter
+
+oneOf :: (Eq a, Show a) => [a] -> Get a -> Get a
+oneOf xs getter = getIf (\x -> x `elem` xs) ("expect: oneOf " ++ show xs) getter
 
 instance Storable SparseHeader where
   sizeOf    _ = #{size sparse_header_t}
@@ -37,55 +61,66 @@ instance Storable ChunkHeader where
   sizeOf    _ = #{size chunk_header_t}
   alignment _ = #{alignment chunk_header_t}
   peek ptr    = ChunkHeader
-            <$> (fromLE16 <$> #{peek chunk_header_t, chunk_type}   ptr)
+            <$> ((toChunkType . fromLE16) <$> #{peek chunk_header_t, chunk_type}   ptr)
             <*> (fromLE16 <$> #{peek chunk_header_t, reserved1}    ptr)
             <*> (fromLE32 <$> #{peek chunk_header_t, chunk_sz}     ptr)
             <*> (fromLE32 <$> #{peek chunk_header_t, total_sz}     ptr)
   poke ptr (ChunkHeader chunk_type reserved1 chunk_sz total_sz) =
-       #{poke chunk_header_t, chunk_type}   ptr (toLE16 chunk_type)
+       #{poke chunk_header_t, chunk_type}   ptr ((toLE16 . fromChunkType) chunk_type)
     *> #{poke chunk_header_t, reserved1}    ptr (toLE16 reserved1)
     *> #{poke chunk_header_t, chunk_sz}     ptr (toLE32 chunk_sz)
     *> #{poke chunk_header_t, total_sz}     ptr (toLE32 total_sz)
 
-getWord16le :: Get Word16
-getWord32le :: Get Word32
-
-getWord16le = fromLE16 <$> get
-getWord32le = fromLE32 <$> get
-
-putWord16le = put . toLE16
-putWord32le = put . toLE32
+sparseHeaderSize, chunkHeaderSize :: Int
+sparseHeaderSize = sizeOf (undefined :: SparseHeader)
+chunkHeaderSize  = sizeOf (undefined :: ChunkHeader)
 
 instance Binary SparseHeader where
   get = SparseHeader
-    <$> getWord32le
-    <*> getWord16le
-    <*> getWord16le
-    <*> getWord16le
-    <*> getWord16le
+    <$> expect sparseHeaderMagic getWord32le
+    <*> expect 1 getWord16le
+    <*> expect 0 getWord16le
+    <*> expect (fromIntegral sparseHeaderSize) getWord16le
+    <*> expect (fromIntegral chunkHeaderSize)  getWord16le
     <*> getWord32le
     <*> getWord32le
     <*> getWord32le
     <*> getWord32le
   put (SparseHeader magic major minor hdrsz chunkhdrsz blksz totalblks totalchunks csum) =
-       putWord32le magic
-    *> putWord16le major
-    *> putWord16le minor
-    *> putWord16le hdrsz
-    *> putWord16le chunkhdrsz
+       (pure (magic == sparseHeaderMagic)) *> putWord32le magic
+    *> (pure (major == 1)) *> putWord16le major
+    *> (pure (minor == 0)) *> putWord16le minor
+    *> (pure (fromIntegral hdrsz == sparseHeaderSize)) *> putWord16le hdrsz
+    *> (pure (fromIntegral chunkhdrsz == chunkHeaderSize)) *> putWord16le chunkhdrsz
     *> putWord32le blksz
     *> putWord32le totalblks
     *> putWord32le totalchunks
     *> putWord32le csum
 
+toChunkType :: LE16 -> ChunkType
+toChunkType v
+  | v == chunkTypeRaw      = ChunkRaw
+  | v == chunkTypeFill     = ChunkFill
+  | v == chunkTypeDontCare = ChunkDontCare
+  | v == chunkTypeCrc32    = ChunkCrc32
+  | otherwise              = error $ "toChunkType: " ++ show v
+
+fromChunkType :: ChunkType -> LE16
+fromChunkType ChunkRaw      = chunkTypeRaw
+fromChunkType ChunkFill     = chunkTypeFill
+fromChunkType ChunkDontCare = chunkTypeDontCare
+fromChunkType ChunkCrc32    = chunkTypeCrc32
+
+validChunkTypes = [chunkTypeRaw, chunkTypeFill, chunkTypeDontCare, chunkTypeCrc32]
+
 instance Binary ChunkHeader where
   get = ChunkHeader
-    <$> getWord16le
+    <$> (toChunkType <$> (oneOf validChunkTypes getWord16le))
     <*> getWord16le
     <*> getWord32le
     <*> getWord32le
   put (ChunkHeader ty rsd csz tsz) =
-       putWord16le ty
+       putWord16le (fromChunkType ty)
     *> putWord16le rsd
     *> putWord32le csz
     *> putWord32le tsz
