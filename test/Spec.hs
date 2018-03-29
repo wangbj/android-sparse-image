@@ -27,7 +27,7 @@ prop_encode_decode_equals_id (LL s) = s == decoded
     encoded = encode s
     decoded = decode encoded
 
-prop_encode_decode_equals_id_blockSize (LL s) (WellDefinedBlockSize bsize) = either (const False) id (encodeWithOpts opt s >>= \enc -> eitherDecode enc >>= \dec -> return (dec == s))
+prop_encode_decode_equals_id_blockSize (LL s) (WellDefinedBlockSize bsize) = either (const False) id (encodeWith opt s >>= \enc -> eitherDecode enc >>= \dec -> return (dec == s))
   where
     opt = defaultSparseOptions { sparseBlockSize = bsize }
 
