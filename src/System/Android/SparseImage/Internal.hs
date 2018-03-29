@@ -2,7 +2,7 @@
 
 module System.Android.SparseImage.Internal (
     sparseGetter
-  , sparseWithOpts
+  , sparseWith
   ) where
 
 import qualified Data.ByteString.Lazy as LBS
@@ -141,5 +141,5 @@ sparseHelper blockSize bs
   | blockSize < 1024 || blockSize `mod` 4 /= 0 = Left (SparseImageInvalidBlockSize blockSize)
   | otherwise = Right . encodeChunks blockSize . map (encodeBlockData blockSize) . mergeBlocks . map (toBlockDataHelper blockSize) . toBlocks blockSize $ bs
 
-sparseWithOpts :: SparseOptions -> LBS.ByteString -> Either SparseImageError LBS.ByteString
-sparseWithOpts opt = sparseHelper (sparseBlockSize opt)
+sparseWith :: SparseOptions -> LBS.ByteString -> Either SparseImageError LBS.ByteString
+sparseWith opt = sparseHelper (sparseBlockSize opt)

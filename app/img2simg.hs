@@ -32,7 +32,7 @@ unsparseImage (CommandLine infile outfile blocksize_) = do
   unsparsed <- LBS.readFile infile
   let defaultBlockSize = sparseBlockSize defaultSparseOptions
       opts             = defaultSparseOptions { sparseBlockSize = fromMaybe defaultBlockSize blocksize_ }
-  either print (LBS.writeFile outfile) (encodeWithOpts opts unsparsed)
+  either print (LBS.writeFile outfile) (encodeWith opts unsparsed)
 
 main :: IO ()
 main = unsparseImage =<< execParser commandOpts
