@@ -1,7 +1,11 @@
 module System.Android.SparseImage (
     encode
+  , encodeWithOpts
   , decode
   , eitherDecode
+  , defaultSparseOptions
+  , SparseOptions (..)
+  , SparseImageError (..)
   ) where
 
 import qualified Data.Binary.Get as Binary.Get
@@ -12,7 +16,10 @@ import System.Android.SparseImage.Instances
 import System.Android.SparseImage.Internal
 
 encode :: ByteString -> ByteString
-encode = toSparse
+encode = either (error . show) id . encodeWithOpts defaultSparseOptions
+
+encodeWithOpts :: SparseOptions -> ByteString -> Either SparseImageError ByteString
+encodeWithOpts opt = sparseWithOpts opt
 
 runGet = Binary.Get.runGet
 
@@ -20,4 +27,3 @@ eitherDecode :: ByteString -> Either SparseImageError ByteString
 eitherDecode = runGet sparseGetter
 
 decode = either (error . show) id . eitherDecode
-

@@ -8,6 +8,8 @@ module System.Android.SparseImage.Types (
   , SparseImageError (..)
   , ChunkType (..)
   , Crc32 (..)
+  , SparseOptions (..)
+  , defaultSparseOptions
   , ChunkHeader (..) ) where
 
 import qualified Data.ByteString.Lazy as LBS
@@ -49,13 +51,24 @@ data ChunkType = ChunkRaw
                | ChunkCrc32
                deriving (Show, Read, Eq, Ord)
 
-data SparseImageError = SparseImageErrorSizeInvalid Int Int
-                      | SparseImageErrorCrc32 Word32 Word32
+data SparseImageError = SparseImageInvalidBlockSize Int
+                      | SparseImageInvalidChunkSize Int
+                      | SparseImageBadCrc Word32 Word32
 
 instance Show SparseImageError where
-  show (SparseImageErrorSizeInvalid blockSize chunkSize) = "SparseImageErrorSizeInvalid: blockSize: " ++ show blockSize ++ ", chunkSize: " ++ show chunkSize
-  show (SparseImageErrorCrc32 expected actual) = "SparseImageErrorCrc32: expected: " ++ printf "%x" expected ++ ", actual: " ++ printf "%x" actual
+  show (SparseImageInvalidBlockSize blockSize) = "SparseImageInvalidBlockSize: " ++ show blockSize
+  show (SparseImageInvalidChunkSize chunkSize) = "SparseImageInvalidChunkSize: " ++ show chunkSize
+  show (SparseImageBadCrc expected actual) = "SparseImageBadCrc: expected: " ++ printf "%x" expected ++ ", actual: " ++ printf "%x" actual
 
 instance Exception SparseImageError
 
 newtype Crc32 = Crc32 { getCrc32 :: Word32 } deriving (Show, Read, Eq, Ord)
+
+data SparseOptions = SparseOptions {
+    sparseBlockSize :: Int
+  } deriving (Eq, Show)
+
+defaultBlockSize :: Int
+defaultBlockSize = 4096
+
+defaultSparseOptions = SparseOptions { sparseBlockSize = defaultBlockSize }

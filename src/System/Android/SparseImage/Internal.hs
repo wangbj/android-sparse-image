@@ -2,7 +2,7 @@
 
 module System.Android.SparseImage.Internal (
     sparseGetter
-  , toSparse
+  , sparseWithOpts
   ) where
 
 import qualified Data.ByteString.Lazy as LBS
@@ -44,8 +44,7 @@ getChunkDataHelper blockSize crcIn (ChunkHeader chunkType _ chunkSize totalSize)
   | chunkType == ChunkDontCare = (skip chunkDataSize) >> (return $ Right (doCrc32 crcIn dnc, mempty))
   | chunkType == ChunkCrc32    = getWord32host >>= \crc -> if isNothing crcIn || Just (Crc32 crc) == crcIn
     then return $ Right (crcIn, mempty)
-    else return $ Left (SparseImageErrorCrc32 crc (maybe 0 getCrc32 crcIn))
-  | otherwise                  = error "???"
+    else return $ Left (SparseImageBadCrc crc (maybe 0 getCrc32 crcIn))
   where
     chunkDataSize = fromIntegral totalSize - (fromIntegral chunkHeaderSize) :: Int
     realChunkSize = (fromIntegral chunkSize) * blockSize :: Int
@@ -137,10 +136,10 @@ encodeChunks blockSize = encodeAllChunks . foldl go (0, 0, mempty)
         totalBlocks = (totalSize+fromIntegral blockSize-1) `div` fromIntegral blockSize
         sparseHeader = SparseHeader ( (toLE32 . fromIntegral) sparseHeaderMagic) (toLE16 1) (toLE16 0) ( (toLE16 . fromIntegral) sparseHeaderSize) ( (toLE16 . fromIntegral) chunkHeaderSize) ( (toLE32 . fromIntegral) blockSize) ( (toLE32 . fromIntegral) totalBlocks) ( (toLE32 .  fromIntegral) totalChunks) (toLE32 0)
 
-toSparseHelper :: Int -> LBS.ByteString -> LBS.ByteString
-toSparseHelper blockSize = encodeChunks blockSize . map (encodeBlockData blockSize) . mergeBlocks . map (toBlockDataHelper blockSize) . toBlocks blockSize
+sparseHelper :: Int -> LBS.ByteString -> Either SparseImageError LBS.ByteString
+sparseHelper blockSize bs
+  | blockSize < 1024 || blockSize `mod` 4 /= 0 = Left (SparseImageInvalidBlockSize blockSize)
+  | otherwise = Right . encodeChunks blockSize . map (encodeBlockData blockSize) . mergeBlocks . map (toBlockDataHelper blockSize) . toBlocks blockSize $ bs
 
-defaultBlockSize :: Int
-defaultBlockSize = 4096
-
-toSparse = toSparseHelper defaultBlockSize
+sparseWithOpts :: SparseOptions -> LBS.ByteString -> Either SparseImageError LBS.ByteString
+sparseWithOpts opt = sparseHelper (sparseBlockSize opt)
